@@ -2,6 +2,10 @@
 
 
 
+# OTHER MODULE IMPORTS
+from Utilities import Utilities
+
+
 # UI IMPORTS
 from rich.table import Table
 from rich.panel import Panel
@@ -16,7 +20,8 @@ import socket
 
 
 # ETC IMPORTS
-import requests, threading, shodan
+import requests, threading, shodan, pytz
+from datetime import datetime
 
 
 
@@ -31,50 +36,68 @@ base_dir.mkdir(parents=True, exist_ok=True)
 
 
 # START OF LOGIC FOR PULLING GEO INFO // WITH IPINFO
-class GeoLookup():
+class IPLookup():
     """This class will be responsible for pulling the geo location of x, using the ipinfo.io api"""
 
     def __init__(self):
         pass
 
+               
 
-    def geo_lookup(self, ip):
-        """This will handle the request to pull geo information"""
+    def pull_info(self, ip, domain):
+            """This method is used to pull info from all the api's used"""
+            
+            print("\n")
 
-        # INITALIZE THE TABLE
-        table = Table(title="IP Info", style="purple")
-        table.add_column("Key", style="bold blue")
-        table.add_column("Value", style="bold green")
-        panel_on = Panel(renderable= f"Geo Lookup for: {ip} Successfully Completed", style="bold green", border_style="bold green", expand=False)
+            # PULL BASIC INFO // PULL GEO INFO
+            info = Utilities().get_geo_lookup(ip, domain)
 
-
-        # CREATE THE URL WITH THE IP
-        url = f"https://ipinfo.io/{ip}"
+            if info["ip"] != "0.0.0.0":
         
-        response = requests.get(url, timeout=5)
+                # PULL WEATHER INFO
+                weather = Utilities().get_weather(info["city"], info["country"])
 
-        if response.status_code == 200:
-            
-            info = response.json()
-            
-            with Live(table, console=console, refresh_per_second=50):
-                for key, value in info.items():
-                    
-                    # NOW TO APPEND DATE TO THE TABLE
-                    table.add_row(f"{key}", f"{value}")
+                # PULL IP INFO
+                Utilities().get_ip_info(ip)   
 
+                # PULL TIMEZONE
+                Utilities().get_time_zone(info["timezone"]  )
             
-            console.print(f"\n{panel_on}")
+
+   
             
+            print("\n")
             
+
+    def pull_ip(self):
+        """Reverse lookup from domain to ip address"""
         
-        else:
-            panel_off = Panel(title=f"Geo Lookup for: {ip} Failed, {response.text}", style="bold red", border_style="bold red", expand=False)
-            console.print(panel_off)
+        while True:
+            try:
 
-            error = response.text
-            console.print(f"[bold red]Error: {error}[/bold red]")
+                domain = console.input("[bold green]Enter Domain or IP:[/bold green] ")
+
+                ip = socket.gethostbyname(domain)
+                
+                return ip, domain
+
+            
+            except Exception as e:
+                console.print(f"[bold red]Unexpected Error:[/bold red] [yellow]{e}[/yellow]")
+    
+
+    def main(self):
+        """The start of greatness"""
+
+        ip, domain = self.pull_ip()
+        
+        self.pull_info(ip, domain)
 
 
-domain = socket.gethostbyname(input("Enter Domain: "))
-GeoLookup().geo_lookup(ip=domain)
+
+
+
+
+IPLookup().main()
+
+
