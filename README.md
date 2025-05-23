@@ -12,4 +12,4 @@
 - **Secure**: Input sanitization and rate limiting
 
 ##  Tech Stack
-```python
+python
